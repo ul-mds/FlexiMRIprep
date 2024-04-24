@@ -1,0 +1,4 @@
+tqdm==4.63.0
+argparse==1.4.0
+SimpleITK==2.1.1.2
+intensity-normalization==2.2.3
