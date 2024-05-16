@@ -1,5 +1,5 @@
-# mri_pipeline
-An MRI Pipeline for Preprocessing Head MRI
+# FlexiMRIprep
+An automatic pipeline for preprocessing brain MRIs
 
 
 ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=8
