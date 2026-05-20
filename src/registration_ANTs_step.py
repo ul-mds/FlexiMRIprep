@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-m", "--mask", help="name of the mask file(.nii.gz)", default="Mask.nii.gz")
 parser.add_argument("-b", "--base_image", help="Select the modality for Co-Registration", default="FLAIR.nii.gz")
 parser.add_argument("-r", "--remove", help="Remove the extra files(only with a very big size!).", default="0")
+parser.add_argument("-j", "--jacobian", help="Jacobian calculation is used for registration quality.", default=1)
 parser.add_argument("-lm", "--list_modalities", help="The list of modalities", default="T1W.nii.gz,T1WKS.nii.gz,T2W.nii.gz")
 parser.add_argument("-i", "--read_dir", help="ّInput path of the patient directory", default="input")
 parser.add_argument("-o", "--write_dir", help="Output path of the patient directory", default="output_reg")
@@ -22,6 +23,7 @@ data_output_dir =args.write_dir
 base_image_name="/"+args.base_image
 shrinkFactor = args.shrink_factor#1
 remove_active=args.remove
+jacobian=int(args.jacobian)
 class registration_parameters():
     def __init__(self,input_path, base_image_name,output_path,ref_path):
         self.paras = zip([input_path + base_image_name], [output_path + base_image_name],
@@ -35,7 +37,7 @@ def remove_file(path_file):
 
 ref_path = os.path.join("./src", "Template", "mni_icbm152_t2_tal_nlin_asym_09c.nii")
 print("\n##### Registration #####\n")
-def registration(src_path, dst_path, ref_path,save_path_affine,src_path_mask, dst_path_mask,mode="modality",thr=0.9):
+def registration(src_path, dst_path, ref_path,save_path_affine,src_path_mask, dst_path_mask,mode="modality",jacobian=1):
     file_name=""
     dis_path_only=""
     fl=False
@@ -56,13 +58,35 @@ def registration(src_path, dst_path, ref_path,save_path_affine,src_path_mask, ds
     if(mode=="base_image"):
         command=["antsRegistration","--verbose", "0","--dimensionality", "3","--float", "0", "--collapse-output-transforms", "1", "--output",
         "[",dst_path1,",",dst_path2,",",dst_path3,"]","--interpolation","Linear", "--use-histogram-matching","0", "--winsorize-image-intensities","[","0.005",",","0.995","]",
-        "--initial-moving-transform","[",ref_path,",",src_path,",","1","]", "--transform","SyN[ 0.1,3,0 ]","--metric","MI[",
+        "--transform","SyN[ 0.1,3,0 ]","--metric","MI[",
         ref_path,",", src_path,",","1",",","32","]", "--convergence", "[ 500x400x70x30,1e-6,10 ]", "--shrink-factors", "8x4x2x1", "--smoothing-sigmas", "3x2x1x0vox"]
+        print(command)
         subprocess.call(command, stdout=open(os.devnull, "r"),
                         stderr=subprocess.STDOUT)
+        if (jacobian==1):
+            # --- Paths ---
+            warp_path = dst_path1+"0Warp.nii.gz"
+            jacobian_path = dst_path_split[0]+"jacobian.nii.gz"
+
+            # --- Step 1: Run ANTs command-line to create Jacobian ---
+            cmd = [
+                #"sc", "ants", "latest",
+                "CreateJacobianDeterminantImage",
+                "3",  # 3D image
+                warp_path,  # warp field
+                jacobian_path,  # output path
+                "0",  # not log
+                "1",  # geometric Jacobian
+                "0"  # output the full deformation gradient matrix image
+            ]
+
+            subprocess.call(cmd, stdout=open(os.devnull, "r"),
+                            stderr=subprocess.STDOUT)
+            print(f"Saved full Jacobian: {jacobian_path}")
+
         if(Mask_name == "/non" ):
-            remove_file(dst_path1+"1Warp.nii.gz")
-            remove_file(dst_path1+"1InverseWarp.nii.gz")
+            remove_file(dst_path1+"0Warp.nii.gz")
+            remove_file(dst_path1+"0InverseWarp.nii.gz")
             remove_file(dst_path3)
 
     if (mode == "mask"):
@@ -70,8 +94,8 @@ def registration(src_path, dst_path, ref_path,save_path_affine,src_path_mask, ds
         "--output",  dst_path_mask,"--interpolation","Linear","--output-data-type","float","--transform",dst_path1+"1Warp.nii.gz","--transform",dst_path1+"0GenericAffine.mat","--default-value","0","--float","0"]#,
         subprocess.call(command, stdout=open(os.devnull, "r"),
                         stderr=subprocess.STDOUT)
-        remove_file(dst_path1+"1Warp.nii.gz")
-        remove_file(dst_path1+"1InverseWarp.nii.gz")
+        remove_file(dst_path1+"0Warp.nii.gz")
+        remove_file(dst_path1+"0InverseWarp.nii.gz")
         remove_file(dst_path3)
     return
 
@@ -87,10 +111,10 @@ def unwarp_main(arg, **kwarg):
     return main(*arg, **kwarg)
 
 
-def main(input_path, output_path, reference_path,save_path_affine,src_path_mask, dst_path_mask,mode="modality"):
+def main(input_path, output_path, reference_path,save_path_affine,src_path_mask, dst_path_mask,mode="modality",jacobian=1):
     print("Applying Registration on: ", input_path)
     try:
-        registration(input_path, output_path, reference_path,save_path_affine,src_path_mask, dst_path_mask,mode)
+        registration(input_path, output_path, reference_path,save_path_affine,src_path_mask, dst_path_mask,mode,jacobian)
     except RuntimeError:
         print("\tFalied to apply Registration on: ", input_path)
 
@@ -103,11 +127,11 @@ create_folder(data_output_dir)
 
 
 data_src_paths, data_dst_paths = [], []
-for session in tqdm(os.listdir(data_input_dir)):
+for session in tqdm([ name for name in os.listdir(data_input_dir) if os.path.isdir(os.path.join(data_input_dir, name)) ]):
     input_path=os.path.join(data_input_dir, session)
     output_path=os.path.join(data_output_dir, session)
     paras = zip([input_path + base_image_name], [output_path + base_image_name],
-                [ref_path],[output_path],[None],[None] ,["base_image"])
+                [ref_path],[output_path],[None],[None] ,["base_image"],[jacobian])
     pool = Pool(processes=cpu_count())
     pool.map(unwarp_main, paras)
     data_input_paths=[]
@@ -122,7 +146,6 @@ for session in tqdm(os.listdir(data_input_dir)):
         pool.map(unwarp_main, paras)
     if(Mask_name != "/non" ):
         paras = zip([input_path + base_image_name], [output_path + base_image_name],
-                    [output_path + base_image_name] ,[output_path],[input_path+Mask_name], [output_path+Mask_name],["mask"])#dst_path + T1W_name
+                    [output_path + base_image_name] ,[output_path],[input_path+Mask_name], [output_path+Mask_name],["mask"],[jacobian])#dst_path + T1W_name
         pool = Pool(processes=cpu_count())
         pool.map(unwarp_main, paras)
-
