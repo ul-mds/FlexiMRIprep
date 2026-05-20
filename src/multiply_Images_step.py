@@ -29,11 +29,11 @@ def betbyfsl(input_path, output_path,ref_path, di="0.5",mask_gen="make"):
     return
 
 
-def unwarp_skull_strip(arg, **kwarg):
-    return skull_strip(*arg, **kwarg)
+def unwarp_multiplyImages(arg, **kwarg):
+    return multiply_Images(*arg, **kwarg)
 
 
-def skull_strip(input_path, output_path,ref_path, di="3"):
+def multiply_Images(input_path, output_path,ref_path, di="3"):
     print("Applying Multiplying Images on :", input_path)
     try:
         betbyfsl(input_path, output_path,ref_path, di)
@@ -49,7 +49,7 @@ def create_folder(path):
 create_folder(data_output_dir)
 
 
-for session in tqdm(os.listdir(data_input_dir)):
+for session in tqdm([ name for name in os.listdir(data_input_dir) if os.path.isdir(os.path.join(data_input_dir, name)) ]):
     input_path=os.path.join(data_input_dir, session)
     output_path=os.path.join(data_output_dir, session)
     create_folder(output_path)
@@ -62,7 +62,7 @@ for session in tqdm(os.listdir(data_input_dir)):
         data_dst_paths.append(os.path.join(output_path, modality_item))
     paras = zip(data_src_paths, data_dst_paths,[ref_path],[dimension])
     pool = Pool(processes=cpu_count())
-    pool.map(unwarp_skull_strip, paras)
+    pool.map(unwarp_multiplyImages, paras)
 
     if (mask_name != "/non" ):
         shutil.copyfile(input_path+mask_name, output_path+mask_name)
