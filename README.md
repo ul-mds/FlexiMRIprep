@@ -81,7 +81,7 @@ docker build  -t fleximriprep .
 Build only once — you do not need to rebuild the image each time you run the pipeline.
 
 ```bash
-docker run --interactive --tty --volume=/home/mds/Documents/temp/test/data:/data fleximriprep main.py -s "7" -m "non" -lm "" -i "./data/input_dicom" -o "./data/output_dicom_scan"  -s7 "d:Protocol Name,Series Description"
+docker run --interactive --tty --volume=/path/to/your/data:/data fleximriprep main.py -s "7" -m "non" -lm "" -i "./data/input_dicom" -o "./data/output_dicom_scan"  -s7 "d:Protocol Name,Series Description"
 ```
 Note: Before proceeding to the next step, open the generated list_dicom_contain.csv file and remove any rows you do not want to process — only the remaining rows will be included in the next step.
 
@@ -110,7 +110,7 @@ For example, to process only 3D_FLAIR files, keep only the corresponding rows an
 | 1123 | XXXXXXXX | /data/MRI/input_dicom/XXXX/XXXX/XXXX | 3D_FLAIR | 3D_FLAIR | 1.2.xxx.xxx.xxx |
 
 ```bash
-docker run --interactive --tty --volume=/home/mds/Documents/temp/test/data:/data fleximriprep main.py -s "8a9422256" -m "non" -lm "" -i "./data/MRI/input_dicom3" -o "./data/MRI/output" -s2 r:1 -s8 pcs:./data/MRI/output_dicom_scan/scan_dicom_files_finish
+docker run --interactive --tty --volume=/path/to/your/data:/data fleximriprep main.py -s "8a9422256" -m "non" -lm "" -i "./data/MRI/input_dicom3" -o "./data/MRI/output" -s2 r:1 -s8 pcs:./data/MRI/output_dicom_scan/scan_dicom_files_finish
 ```
 
 ## File Structure
