@@ -30,4 +30,3 @@ pip install -r requirements.txt
 
 # reinstall SimpleITK !
 python3 -m pip install SimpleITK==2.1.1.2
-
