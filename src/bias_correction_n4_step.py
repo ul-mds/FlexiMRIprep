@@ -64,7 +64,7 @@ create_folder(data_write_dir)
 
 
 
-for session in tqdm(os.listdir(data_read_dir)):
+for session in tqdm([ name for name in os.listdir(data_read_dir) if os.path.isdir(os.path.join(data_read_dir, name)) ]):
     read_path=os.path.join(data_read_dir, session)
     write_path=os.path.join(data_write_dir, session)
     create_folder(write_path)
@@ -85,4 +85,3 @@ for session in tqdm(os.listdir(data_read_dir)):
             print(item)
     if (Mask_name != "/non" ):
         shutil.copyfile(read_path+Mask_name, write_path+Mask_name)
-
