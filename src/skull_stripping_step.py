@@ -51,7 +51,7 @@ def create_folder(path):
 create_folder(data_output_dir)
 
 
-for session in tqdm(os.listdir(data_input_dir)):
+for session in tqdm([ name for name in os.listdir(data_input_dir) if os.path.isdir(os.path.join(data_input_dir, name)) ]):
     input_path=os.path.join(data_input_dir, session)
     output_path=os.path.join(data_output_dir, session)
     create_folder(output_path)
